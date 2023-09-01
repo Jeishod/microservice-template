@@ -1,0 +1,22 @@
+{
+  "name": "service-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "plugin.name": "pgoutput",
+    "database.hostname": "$DB_HOST",
+    "database.port": "$DB_PORT",
+    "database.user": "$DB_USERNAME",
+    "database.password": "$DB_PASSWORD",
+    "database.dbname" : "$DB_DATABASE",
+    "topic.prefix": "$VERSION",
+    "database.server.name": "pg-test",
+    "table.include.list": "public.projects",
+    "heartbeat.interval.ms": "5000",
+    "slot.name": "service_debezium",
+    "publication.name": "service_publication",
+    "transforms": "AddPrefix",
+    "transforms.AddPrefix.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.AddPrefix.regex": "(.*).public.(.*)",
+    "transforms.AddPrefix.replacement": "$1.debezium.cdc.$2.0"
+  }
+}

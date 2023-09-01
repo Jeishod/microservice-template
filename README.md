@@ -1,16 +1,14 @@
-[![Linters](https://github.com/CyberPhysics-Platform/batchmq/actions/workflows/linting.yml/badge.svg)](https://github.com/CyberPhysics-Platform/batchmq/actions/workflows/linting.yml)
-### BatchMQ service
+# microservice-template
+
+> Here is my personal microservice template that I use to start new project development as quick as possible:)
+
+### Dependencies:
 - python >= 3.11
-- mypy & pyright & pylint & flake8
-- prometheus /metrics
 
-#### TODO:
-- тесты
-- запуск повторной обработки сообщений из очередей с ошибками
-    - учесть возможные "перемешивания" сообщений, которые должны вставляться по очереди
+### Dev dependencies:
+- isort & black
+- mypy & pyright & pylint & flake8 (pyproject-flake8)
 
-#### Архитектурная диаграмма
-<img src="./static/arch.jpg" width="400px">
-
-#### Диаграмма последовательностей
-<img src="./static/seq.jpg">
+### Alembic:
+new migration: poe migration -m 'initial'
+run migration: poe migrate
