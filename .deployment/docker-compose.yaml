@@ -1,0 +1,148 @@
+version: "3.9"
+
+networks:
+  template-service-network:
+    name: template-service-network
+  template-kafka-network:
+    name: template-kafka-network
+    external: true
+
+
+x-logging:
+  &formatted-logging
+  driver: json-file
+  options:
+    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+    max-size: "10m"
+    max-file: "3"
+    mode: "non-blocking"
+    max-buffer-size: "4m"
+
+x-service-envs:
+  &service-envs
+  SERVICE_NAME_DEBUG: ${SERVICE_NAME_DEBUG}
+  SERVICE_NAME_APP_TITLE: ${SERVICE_NAME_APP_TITLE}
+  SERVICE_NAME_APP_DESCRIPTION: ${SERVICE_NAME_APP_DESCRIPTION}
+
+  SERVICE_NAME_KAFKA_BOOTSTRAP_SERVERS: ${SERVICE_NAME_KAFKA_BOOTSTRAP_SERVERS}
+  SERVICE_NAME_KAFKA_SCHEMA_REGISTRY_URL: ${SERVICE_NAME_KAFKA_SCHEMA_REGISTRY_URL}
+  SERVICE_NAME_KAFKA_GROUP_ID: ${SERVICE_NAME_KAFKA_GROUP_ID}
+
+  SERVICE_NAME_REDIS_ORM_HOST: ${SERVICE_NAME_REDIS_ORM_HOST}
+  SERVICE_NAME_REDIS_ORM_PORT: ${SERVICE_NAME_REDIS_ORM_PORT}
+  SERVICE_NAME_REDIS_ORM_DB: ${SERVICE_NAME_REDIS_ORM_DB}
+
+  SERVICE_NAME_S3_ENDPOINT: ${SERVICE_NAME_S3_ENDPOINT}
+  SERVICE_NAME_S3_ACCESS_KEY: ${SERVICE_NAME_S3_ACCESS_KEY}
+  SERVICE_NAME_S3_SECRET_KEY: ${SERVICE_NAME_S3_SECRET_KEY}
+  SERVICE_NAME_S3_BUCKET: ${SERVICE_NAME_S3_BUCKET}
+
+x-postgres-envs:
+  &postgres-envs
+  SERVICE_NAME_DB_HOST: ${SERVICE_NAME_DB_HOST}
+  SERVICE_NAME_DB_PORT: ${SERVICE_NAME_DB_PORT}
+  SERVICE_NAME_DB_USERNAME: ${SERVICE_NAME_DB_USERNAME}
+  SERVICE_NAME_DB_PASSWORD: ${SERVICE_NAME_DB_PASSWORD}
+  SERVICE_NAME_DB_DATABASE: ${SERVICE_NAME_DB_DATABASE}
+
+
+services:
+
+  template-service-postgres:
+    container_name: template-service-postgres
+    image: postgres:15.0-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${SERVICE_NAME_DB_USERNAME}
+      POSTGRES_PASSWORD: ${SERVICE_NAME_DB_PASSWORD}
+      POSTGRES_DB: ${SERVICE_NAME_DB_DATABASE}
+    command: [ "postgres", "-c", "wal_level=logical" ]
+    healthcheck:
+      test: pg_isready --username=${SERVICE_NAME_DB_USERNAME} --dbname=${SERVICE_NAME_DB_DATABASE}
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "${SERVICE_NAME_DB_EXPOSED_PORT:-5432}:5432"
+    networks:
+      - template-service-network
+      - template-kafka-network
+
+  template-service-redis:
+    container_name: template-service-redis
+    image: redis:7.0
+    restart: unless-stopped
+    healthcheck:
+      test: redis-cli ping || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${SERVICE_NAME_REDIS_EXPOSED_PORT:-6379}:6379"
+    logging: *formatted-logging
+    networks:
+      - template-service-network
+
+  template-service-kafka-debezium:
+    build:
+      context: ../
+      dockerfile: ./.deployment/connectors.Dockerfile
+    container_name: template-service-kafka-debezium
+    volumes:
+      - ./debezium:/configs
+    environment:
+      KAFKA_CONNECT_HOST: http://kafka-connector:8083
+      DB_HOST: ${SERVICE_NAME_DB_HOST}
+      DB_PORT: ${SERVICE_NAME_DB_PORT}
+      DB_USERNAME: ${SERVICE_NAME_DB_USERNAME}
+      DB_PASSWORD: ${SERVICE_NAME_DB_PASSWORD}
+      DB_DATABASE: ${SERVICE_NAME_DB_DATABASE}
+      VERSION: ${VERSION}
+    networks:
+      - template-kafka-network
+
+  template-service-minio:
+    container_name: template-service-minio
+    image: minio/minio:RELEASE.2022-11-17T23-20-09Z
+    command: minio server --address ":9000" --console-address ":9001" /data
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${SERVICE_NAME_S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${SERVICE_NAME_S3_SECRET_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${SERVICE_NAME_S3_UI_EXPOSED_PORT:-9001}:9001"
+      - "${SERVICE_NAME_S3_EXPOSED_PORT:-9000}:9000"
+    logging: *formatted-logging
+    networks:
+      - template-service-network
+
+  template-service:
+    container_name: template-service
+    build:
+      context: ../
+      dockerfile: ./.deployment/Dockerfile
+    image: template-service
+    restart: always
+    environment:
+      <<: [*service-envs, *postgres-envs]
+    depends_on:
+      template-service-postgres:
+        condition: service_healthy
+      template-service-redis:
+        condition: service_healthy
+    healthcheck:
+      test: curl -f http://0.0.0.0:8000
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "${SERVICE_NAME_EXPOSED_PORT:-8000}:8000"
+    logging: *formatted-logging
+    networks:
+      - template-service-network
+      - template-kafka-network

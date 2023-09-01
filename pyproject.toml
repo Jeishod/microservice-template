@@ -1,31 +1,34 @@
 [tool.poetry]
-name = "cyberstudio-batchmq"
+name = "microservice-template"
 version = "0.1.0"
 description = ""
 authors = ["jeishod <jeishod@gmail.com>"]
 readme = "README.md"
-packages = [{ include = "cyberstudio_batchmq"}]
 
-    [tool.poetry.dependencies]
-    python = "^3.11"
-    fastapi = "^0.95.1"
-    aio-pika = "^9.0.5"
-    sqlalchemy = "^2.0.9"
-    pandas = "^2.0.0"
-    asyncpg = "^0.27.0"
-    prometheus-client = "^0.16.0"
-    uvicorn = "^0.21.1"
-    python-dotenv = "^1.0.0"
-    dependency-injector = "^4.41.0"
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = {extras = ["uvicorn"], version = "^0.100.0"}
+sqlalchemy = "^2.0.19"
+alembic = "^1.11.1"
+asyncpg = "^0.28.0"
+gunicorn = "^21.0.0"
+poethepoet = "^0.21.1"
+prometheus-fastapi-instrumentator = "^6.1.0"
+loguru = "^0.7.0"
+python-jose = "^3.3.0"
+pydantic-settings = "^2.0.3"
+aiostorage-orm = "^1.4.2"
+minio = "^7.1.16"
+aiokafka = "^0.8.1"
+confluent-kafka = "^2.2.0"
+aioboto3 = "^11.3.0"
 
-    [tool.poetry.group.dev.dependencies]
-    black = "^23.3.0"
-    pyproject-flake8 = "^6.0.0.post1"
-    mypy = "^1.2.0"
-    pylint = "^2.17.2"
-    pyright = "^1.1.304"
-    pytest-asyncio = "^0.21.0"
-    docker = "^6.0.1"
+[tool.poetry.group.dev.dependencies]
+black = "^23.7.0"
+isort = "^5.12.0"
+pyproject-flake8 = "^6.0.0.post1"
+mypy = "^1.4.1"
+pylint = "^2.17.4"
 
 [build-system]
 requires = ["poetry-core"]
@@ -36,25 +39,25 @@ max-line-length = 120
 max-complexity = 10
 
 [tool.pylint]
-    [tool.pylint.messages_control]
-    disable = []
+[tool.pylint.messages_control]
+disable = []
 
-    [tool.pylint.format]
-    max-line-length = "120"
+[tool.pylint.format]
+max-line-length = "120"
 
 [tool.black]
 line-length = 120
 target-version = ["py311"]
 
 [tool.pytest]
-    [tool.pytest.ini_options]
-    minversion = "6.0"
-    addopts = "-s -vv"  # TODO: -ra
-    testpaths = [
-        "tests/unit",
-        "tests/integration",
-    ]
-    asyncio_mode = "auto"
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-s -vv"
+testpaths = [
+    "tests/unit",
+    "tests/integration",
+]
+asyncio_mode = "auto"
 
 [tool.mypy]
 python_version = "3.11"

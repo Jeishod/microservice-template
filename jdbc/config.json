@@ -1,0 +1,27 @@
+{
+  "name": "",
+  "config": {
+    "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+    "tasks.max": "1",
+    "connection.url": "jdbc:postgresql://$SERVICE_NAME_DB_HOST:$SERVICE_NAME_DB_PORT/$SERVICE_NAME_DB_DATABASE",
+    "connection.user": "$SERVICE_NAME_DB_USERNAME",
+    "connection.password": "$SERVICE_NAME_DB_PASSWORD",
+    "topics": "dev.debezium.cdc.projects.0",
+    "pk.fields": "id",
+    "pk.mode": "record_key",
+    "auto.create": "false",
+    "auto.evolve": "false",
+    "insert.mode": "upsert",
+    "delete.enabled": "true",
+    "transforms": "route,unwrap,only_fields",
+    "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.route.regex": "([^.]+)\\.([^.]+)\\.([^.]+)",
+    "transforms.route.replacement": "$POSTGRES_DB.public.$3",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "false",
+    "transforms.only_fields.type": "org.apache.kafka.connect.transforms.ReplaceField$Value",
+    "transforms.only_fields.whitelist": "",
+    "errors.tolerance": "all",
+    "errors.log.enable": "true"
+  }
+}

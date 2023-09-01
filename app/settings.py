@@ -1,20 +1,39 @@
-from pydantic import BaseSettings
+from pydantic import Field
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+)
 
-from app.services.example_service.implementation.postgresql import PostgreSQLParams
-from app.services.queue import RabbitMQParams
+from models.enum import Service
+from services.broker.kafka.settings import KafkaSettings
+from services.database.postgresql.postgresql import PostgreSQLParams
+from services.s3_storage import (
+    MinioParams,
+    S3Params,
+)
+from services.storage_orm import RedisORMParams
 
 
 class Settings(BaseSettings):
-    DEBUG: int = 0
+    """General service settings"""
 
-    APP_TITLE: str = "BatchMQ"
-    APP_DESCRIPTION: str = "Групповая запись данных из очереди в базу данных"
+    DEBUG: int = Field(default=0)
+
+    APP_TITLE: str = "Microservice template"
+    APP_DESCRIPTION: str = "Example of microservice"
 
     LOG_FORMAT: str = "%(asctime)s [%(name)s:%(lineno)s] [%(levelname)s]: %(message)s"
 
-    rabbitmq: RabbitMQParams = RabbitMQParams()
     postgresql: PostgreSQLParams = PostgreSQLParams()
+    kafka_settings: KafkaSettings = KafkaSettings()
+    redis: RedisORMParams = RedisORMParams()
+    minio: MinioParams = MinioParams()
+    s3: S3Params = S3Params()
 
-    class Config:
-        env_file = ".env"
-        env_prefix = "BATCHMQ_"
+    model_config = SettingsConfigDict(env_prefix="SERVICE_NAME_")
+
+
+class ConstSettings:
+    """Constant settings"""
+
+    SERVICE = Service.template
